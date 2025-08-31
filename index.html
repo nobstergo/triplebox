@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TripleBox - Simple Editing Tools</title>
+  <style>
+    :root { 
+      --bg: #0b0c10; 
+      --fg: #e9f0f3; 
+      --muted: #7a8691; 
+      --card-bg: #111419;
+      --border: #1b2128;
+      --accent: #2b7cff;
+      --accent-light: #00ffff;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body { 
+      margin: 0; 
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; 
+      background: var(--bg); 
+      color: var(--fg); 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(43, 124, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(0, 255, 255, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 40% 60%, rgba(43, 124, 255, 0.01) 0%, transparent 50%);
+      animation: float 20s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(30px, -30px) rotate(1deg); }
+      66% { transform: translate(-20px, 20px) rotate(-1deg); }
+    }
+
+    /* Header */
+    .header {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      background: rgba(17, 20, 25, 0.8);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--fg);
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 60px 20px;
+      width: 100%;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      margin: 0 0 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: glow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { filter: brightness(1); }
+      to { filter: brightness(1.1); }
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .cta-button {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      padding: 16px 32px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(43, 124, 255, 0.3);
+    }
+
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(43, 124, 255, 0.4);
+    }
+
+    /* Tools section */
+    .tools-section {
+      margin-bottom: 80px;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 50px;
+      color: var(--fg);
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .tool-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(43, 124, 255, 0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .tool-card:hover::before {
+      left: 100%;
+    }
+
+    .tool-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 40px rgba(43, 124, 255, 0.2);
+    }
+
+    .tool-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      border-radius: 12px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      font-weight: bold;
+    }
+
+    .tool-card h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 15px;
+      color: var(--fg);
+    }
+
+    .tool-card p {
+      color: var(--muted);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .coming-soon {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: blur(2px);
+      position: relative;
+    }
+
+    .coming-soon::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(11, 12, 16, 0.8);
+      border-radius: 16px;
+      backdrop-filter: blur(4px);
+    }
+
+    .coming-soon .badge {
+      position: relative;
+      z-index: 2;
+      filter: none;
+    }
+
+    .coming-soon .tool-icon {
+      background: linear-gradient(135deg, var(--muted), #5a6570);
+    }
+
+    .badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: var(--accent);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      min-width: auto;
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border);
+      background: rgba(17, 20, 25, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 40px 0;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .footer-link:hover {
+      color: var(--fg);
+    }
+
+    .footer-text {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .nav-links {
+        gap: 20px;
+      }
+
+      .main {
+        padding: 40px 20px;
+      }
+
+      .hero {
+        margin-bottom: 60px;
+      }
+
+      .tools-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .footer-links {
+        flex-direction: column;
+        gap: 15px;
+      }
+    }
+
+    /* Floating particles animation */
+    .particle {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      background: var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.3;
+      animation: particle-float 15s infinite linear;
+    }
+
+    @keyframes particle-float {
+      0% {
+        transform: translateY(100vh) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.3;
+      }
+      90% {
+        opacity: 0.3;
+      }
+      100% {
+        transform: translateY(-100px) translateX(100px);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating particles -->
+  <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+  <div class="particle" style="left: 30%; animation-delay: 3s;"></div>
+  <div class="particle" style="left: 50%; animation-delay: 6s;"></div>
+  <div class="particle" style="left: 70%; animation-delay: 9s;"></div>
+  <div class="particle" style="left: 90%; animation-delay: 12s;"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="#" class="logo">TripleBox</a>
+      <nav class="nav-links">
+        <a href="#tools" class="nav-link">Tools</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Simple Editing Tools</h1>
+      <p>Professional editing made easy with our collection of lightweight, browser-based tools. No complex software needed - just open, create, and export.</p>
+      <a href="#tools" class="cta-button">Explore Tools</a>
+    </section>
+
+    <!-- Tools Section -->
+    <section class="tools-section" id="tools">
+      <h2 class="section-title">Available Tools</h2>
+      <div class="tools-grid">
+        
+        <!-- Wave Text Generator Tool -->
+        <a href="tools/wave-text-gen/index.html" class="tool-card">
+          <div class="badge">New</div>
+          <div class="tool-icon">
+            <span>~</span>
+          </div>
+          <h3>Wave Text Generator</h3>
+          <p>Create stunning animated wave text with transparent backgrounds. Perfect for logos, titles, and eye-catching graphics.</p>
+        </a>
+
+        <!-- Coming Soon Tools -->
+        <div class="tool-card coming-soon">
+          <div class="badge" style="background: var(--muted);">Soon</div>
+          <div class="tool-icon">
+            <span>🎨</span>
+          </div>
+          <h3>Color Palette Generator</h3>
+          <p>Generate beautiful color schemes and gradients for your projects with one click.</p>
+        </div>
+
+        <div class="tool-card coming-soon">
+          <div class="badge" style="background: var(--muted);">Soon</div>
+          <div class="tool-icon">
+            <span>📐</span>
+          </div>
+          <h3>SVG Icon Editor</h3>
+          <p>Create and customize vector icons with an intuitive drawing interface.</p>
+        </div>
+
+        <div class="tool-card coming-soon">
+          <div class="badge" style="background: var(--muted);">Soon</div>
+          <div class="tool-icon">
+            <span>🖼️</span>
+          </div>
+          <h3>Image Optimizer</h3>
+          <p>Compress and resize images while maintaining quality. Multiple formats supported.</p>
+        </div>
+
+        <div class="tool-card coming-soon">
+          <div class="badge" style="background: var(--muted);">Soon</div>
+          <div class="tool-icon">
+            <span>✂️</span>
+          </div>
+          <h3>Background Remover</h3>
+          <p>Remove backgrounds from images automatically with AI-powered precision.</p>
+        </div>
+
+        <div class="tool-card coming-soon">
+          <div class="badge" style="background: var(--muted);">Soon</div>
+          <div class="tool-icon">
+            <span>📊</span>
+          </div>
+          <h3>Chart Creator</h3>
+          <p>Build beautiful charts and graphs from your data with customizable templates.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="tools-section" id="about">
+      <h2 class="section-title">Why TripleBox?</h2>
+      <div style="max-width: 800px; margin: 0 auto; text-align: center;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-top: 40px;">
+          
+          <div>
+            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, var(--accent), var(--accent-light)); border-radius: 12px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;">⚡</div>
+            <h3 style="margin: 0 0 10px; color: var(--fg);">Lightning Fast</h3>
+            <p style="color: var(--muted); margin: 0; line-height: 1.6;">No downloads, no installations. Everything runs directly in your browser with instant results.</p>
+          </div>
+
+          <div>
+            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, var(--accent), var(--accent-light)); border-radius: 12px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🎯</div>
+            <h3 style="margin: 0 0 10px; color: var(--fg);">Simple & Focused</h3>
+            <p style="color: var(--muted); margin: 0; line-height: 1.6;">Each tool does one thing exceptionally well. No bloated interfaces or confusing menus.</p>
+          </div>
+
+          <div>
+            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, var(--accent), var(--accent-light)); border-radius: 12px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🆓</div>
+            <h3 style="margin: 0 0 10px; color: var(--fg);">Completely Free</h3>
+            <p style="color: var(--muted); margin: 0; line-height: 1.6;">All tools are free to use with no limits, watermarks, or hidden fees. Create as much as you want.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="#" class="footer-link">Privacy Policy</a>
+        <a href="#" class="footer-link">Terms of Service</a>
+        <a href="#" class="footer-link">Support</a>
+        <a href="#" class="footer-link">GitHub</a>
+      </div>
+      <p class="footer-text">© 2025 TripleBox</p>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+
+    // Add more floating particles dynamically
+    function createParticle() {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDelay = Math.random() * 15 + 's';
+      particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+      document.body.appendChild(particle);
+
+      // Remove particle after animation
+      setTimeout(() => {
+        if (particle.parentNode) {
+          particle.parentNode.removeChild(particle);
+        }
+      }, 25000);
+    }
+
+    // Create particles periodically
+    setInterval(createParticle, 3000);
+
+    // Add subtle parallax effect to hero
+    window.addEventListener('scroll', () => {
+      const scrolled = window.pageYOffset;
+      const hero = document.querySelector('.hero');
+      if (hero) {
+        hero.style.transform = `translateY(${scrolled * 0.3}px)`;
+      }
+    });
+  </script>
+</body>
+</html>

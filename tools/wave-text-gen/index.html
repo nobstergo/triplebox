@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wave Text Generator | TripleBox</title>
+  <style>
+    :root { --bg:#0b0c10; --fg:#e9f0f3; --muted:#7a8691; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--fg); display:flex; flex-direction: column; min-height:100vh; }
+    .back-btn { appearance:none; border:none; background:#223041; color:#cfe0ff; padding:12px 24px; border-radius:8px; font-size:14px; cursor:pointer; border:1px solid #2a3950; text-decoration: none; display: inline-block; margin: 20px auto; }
+    .back-btn:hover { background:#2a3950; }
+    .app { margin:auto; width:min(920px, 95vw); padding:20px; flex: 1; }
+    h1 { margin:0 0 4px; font-size:28px; font-weight:700; letter-spacing:.2px; background: linear-gradient(135deg, #2b7cff, #00ffff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; }
+    .subtitle { margin: 0 0 20px; font-size: 14px; color: var(--muted); text-align: center; }
+    .panel { background:#111419; border:1px solid #1b2128; border-radius:16px; padding:20px; box-shadow:0 6px 24px rgba(0,0,0,.25); margin-bottom: 16px; }
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 12px; border-bottom: 1px solid #1b2128; padding-bottom: 8px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; align-items:end; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size:12px; color:var(--muted); font-weight: 500; }
+    input[type="text"] { width:320px; max-width:100%; padding:10px 12px; border-radius:12px; border:1px solid #26303a; background:#0e1216; color:var(--fg); }
+    input[type="range"] { width:160px; }
+    input[type="number"] { width:84px; padding:8px 10px; border-radius:12px; border:1px solid #26303a; background:#0e1216; color:var(--fg); }
+    input[type="color"] { width:42px; height:32px; border:none; background:none; border-radius: 6px; }
+    select { width:180px; padding:8px 10px; border-radius:12px; border:1px solid #26303a; background:#0e1216; color:var(--fg); }
+    .btn { appearance:none; border:none; background:#2b7cff; color:white; padding:12px 16px; border-radius:12px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(43,124,255,.25); }
+    .btn.secondary { background:#223041; color:#cfe0ff; box-shadow:none; border:1px solid #2a3950; }
+    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow:0 6px 20px rgba(43,124,255,.35); }
+    .stack { display:flex; flex-direction:column; gap:8px; }
+    .hint { font-size:12px; color:var(--muted); }
+    canvas { width:720px; height:240px; max-width:100%; display:block; margin:14px auto; background:transparent; border:1px solid #1b2128; border-radius: 8px; }
+    .progress-bar { width: 100%; height: 4px; background: #26303a; border-radius: 2px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; background: #2b7cff; width: 0%; transition: width 0.3s ease; }
+    .color-group { display: flex; align-items: end; gap: 12px; }
+    .checkbox-container { 
+      display: flex; 
+      align-items: center; 
+      gap: 8px;
+    }
+    .checkbox-btn { 
+      appearance: none; 
+      border: 2px solid #26303a; 
+      background: #0e1216; 
+      color: var(--muted); 
+      padding: 8px 12px; 
+      border-radius: 8px; 
+      font-size: 12px; 
+      font-weight: 500; 
+      cursor: pointer; 
+      transition: all 0.2s ease;
+      position: relative;
+      min-width: 120px;
+      text-align: center;
+    }
+    .checkbox-btn:checked { 
+      background: #2b7cff; 
+      border-color: #2b7cff; 
+      color: white; 
+    }
+    .checkbox-btn:hover { 
+      border-color: #2b7cff; 
+    }
+    .footer { 
+      display: flex; 
+      justify-content: center; 
+      padding: 20px; 
+      border-top: 1px solid #1b2128; 
+      margin-top: 20px; 
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Wave Text Generator</h1>
+    <p class="subtitle">Create stunning animated wave text with transparent backgrounds</p>
+
+    <div class="panel">
+      <div class="section">
+        <div class="section-title">Text Settings</div>
+        <div class="row">
+          <div class="control-group">
+            <label>Text Content</label>
+            <input id="textInput" type="text" value="Sample Text  " />
+              <label>Add spaces for offset.</label>
+          </div>
+          <div class="control-group">
+            <label>Font Size</label>
+            <input id="fontSize" type="number" value="72" min="12" max="200" />
+          </div>
+          <div class="control-group">
+            <label>Font Family</label>
+            <select id="fontSelect">
+              <option value="Inter, ui-sans-serif, system-ui, sans-serif">Inter</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Times New Roman', serif">Times</option>
+              <option value="'Courier New', monospace">Courier</option>
+              <option value="Impact, sans-serif">Impact</option>
+              <option value="'Comic Sans MS', cursive">Comic Sans</option>
+              <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Text Color</label>
+            <input id="colorInput" type="color" value="#ffffff" />
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Animation Settings</div>
+        <div class="row">
+          <div class="control-group">
+            <label>Wave Amplitude</label>
+            <input id="ampInput" type="range" min="0" max="80" value="25" />
+          </div>
+          <div class="control-group">
+            <label>Wave Frequency</label>
+            <input id="freqInput" type="range" min="0.5" max="4" step="0.1" value="0.8" />
+          </div>
+          <div class="control-group">
+            <label>Animation Speed</label>
+            <input id="speedInput" type="range" min="0.1" max="10" step="0.1" value="1.5" />
+          </div>
+          <div class="control-group">
+            <label>Canvas Size (W×H)</label>
+            <div class="row">
+              <input id="cw" type="number" value="720" min="64" max="1920" />
+              <input id="ch" type="number" value="240" min="64" max="1080" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Text Styling</div>
+        <div class="row">
+          
+          <div class="checkbox-container">
+            <button type="button" id="outlineEnabled" class="checkbox-btn">Enable Outline</button>
+          </div>
+          <div class="color-group">
+            <div class="control-group">
+              <label>Outline Color</label>
+              <input id="outlineColor" type="color" value="#000000" />
+            </div>
+            <div class="control-group">
+              <label>Outline Width</label>
+              <input id="outlineWidth" type="number" value="3" min="0" max="20" />
+            </div>
+          </div>
+        </div>
+          
+        <div class="row">
+          <div class="checkbox-container">
+            <button type="button" id="glowEnabled" class="checkbox-btn">Enable Glow</button>
+          </div>
+          <div class="color-group">
+            <div class="control-group">
+              <label>Glow Color</label>
+              <input id="glowColor" type="color" value="#00ffff" />
+            </div>
+            <div class="control-group">
+              <label>Glow Intensity</label>
+              <input id="glowIntensity" type="number" value="3" min="0" max="20" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="row">
+          <button class="btn" id="downloadFrames">Download frames ZIP</button>
+          <span class="hint" id="status"></span>
+        </div>
+        
+        <div class="progress-bar" id="progressContainer" style="display: none;">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="canvas" width="720" height="240"></canvas>
+  </div>
+
+  <div class="footer">
+    <a href="https://triplebox.netlify.com" class="back-btn">Back</a>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // High DPR for sharp text
+    const DPR = Math.max(2, window.devicePixelRatio || 2);
+
+    // Controls
+    const textInput = document.getElementById('textInput');
+    const fontSize = document.getElementById('fontSize');
+    const fontSelect = document.getElementById('fontSelect');
+    const colorInput = document.getElementById('colorInput');
+    const ampInput = document.getElementById('ampInput');
+    const freqInput = document.getElementById('freqInput');
+    const speedInput = document.getElementById('speedInput');
+    const cw = document.getElementById('cw');
+    const ch = document.getElementById('ch');
+    const statusEl = document.getElementById('status');
+    const downloadFrames = document.getElementById('downloadFrames');
+    const outlineEnabled = document.getElementById('outlineEnabled');
+    const outlineColor = document.getElementById('outlineColor');
+    const outlineWidth = document.getElementById('outlineWidth');
+    const glowEnabled = document.getElementById('glowEnabled');
+    const glowColor = document.getElementById('glowColor');
+    const glowIntensity = document.getElementById('glowIntensity');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+
+    let animationTime = 0;
+
+    // Update checkbox button text and styling
+    let outlineState = false;
+    let glowState = false;
+    
+    function updateCheckboxButtons() {
+      outlineEnabled.textContent = outlineState ? '✓ Enable Outline' : 'Enable Outline';
+      glowEnabled.textContent = glowState ? '✓ Enable Glow' : 'Enable Glow';
+    }
+
+    function toggleOutline() {
+      outlineState = !outlineState;
+      updateCheckboxButtons();
+    }
+
+    function toggleGlow() {
+      glowState = !glowState;
+      updateCheckboxButtons();
+    }
+
+    function resizeCanvas() {
+      const w = Math.max(16, parseInt(cw.value || 720, 10));
+      const h = Math.max(16, parseInt(ch.value || 240, 10));
+      canvas.width = Math.floor(w * DPR);
+      canvas.height = Math.floor(h * DPR);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      
+      // Enable text smoothing for sharp rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+    }
+
+    function wrapText(ctx, text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = words[0] || '';
+
+      for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = ctx.measureText(currentLine + ' ' + word).width;
+        if (width < maxWidth) {
+          currentLine += ' ' + word;
+        } else {
+          lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      lines.push(currentLine);
+      return lines;
+    }
+
+    function createFlagWave(text, time) {
+      const w = canvas.width / DPR;
+      const h = canvas.height / DPR;
+      const fs = Math.max(8, parseInt(fontSize.value || 72, 10));
+      const font = fontSelect.value;
+      
+      // Set font with high quality
+      ctx.font = `700 ${fs}px ${font}`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      
+      const amplitude = parseFloat(ampInput.value || 25);
+      const frequency = parseFloat(freqInput.value || 0.8);
+      const speed = parseFloat(speedInput.value || 1.5);
+      
+      // Clear with transparency
+      ctx.clearRect(0, 0, w, h);
+      
+      // Calculate padding based on effects
+      const glowPadding = glowState ? parseInt(glowIntensity.value || 3, 10) * 2 : 0;
+      const outlinePadding = outlineState ? parseInt(outlineWidth.value || 3, 10) : 0;
+      const effectsPadding = Math.max(glowPadding, outlinePadding);
+      
+      // Account for amplitude and effects in text positioning
+      const totalPadding = amplitude + effectsPadding + fs * 0.2;
+      
+      // Handle text wrapping for small canvas
+      const maxTextWidth = w - (totalPadding * 2); // Leave space for wave movement and effects
+      const lines = text.length > 15 && maxTextWidth < 400 ? wrapText(ctx, text, maxTextWidth) : [text];
+      
+      const lineHeight = fs * 1.3;
+      const totalTextHeight = lines.length * lineHeight;
+      const startY = h / 2 - totalTextHeight / 2 + lineHeight / 2;
+      
+      lines.forEach((line, lineIndex) => {
+        const centerX = w / 2;
+        const centerY = startY + lineIndex * lineHeight;
+        
+        // Ensure we have some text to render
+        if (!line.trim()) return;
+        
+        // Measure text for proper centering
+        const metrics = ctx.measureText(line);
+        const textWidth = metrics.width;
+        
+        // Skip if text is too wide for canvas
+        if (textWidth > maxTextWidth) {
+          ctx.fillStyle = '#ff6b6b';
+          ctx.font = `400 ${Math.min(16, fs/3)}px ${font}`;
+          ctx.fillText('Text too wide - increase canvas width', centerX, centerY);
+          return;
+        }
+        
+        // Create wave distortion by rendering text in segments
+        const segments = Math.max(30, Math.min(100, line.length * 4));
+        const segmentWidth = textWidth / segments;
+        
+        // Calculate proper bounds for temporary canvas
+        const maxGlowSize = glowState ? parseInt(glowIntensity.value || 3, 10) * 3 : 0;
+        const maxOutlineSize = outlineState ? parseInt(outlineWidth.value || 3, 10) * 2 : 0;
+        const extraPadding = Math.max(maxGlowSize, maxOutlineSize) + fs * 0.3;
+        
+        const tempWidth = textWidth + extraPadding * 2;
+        const tempHeight = fs + extraPadding * 2;
+        
+        // Create temporary high-res canvas for sharp text
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = Math.ceil(tempWidth * DPR);
+        tempCanvas.height = Math.ceil(tempHeight * DPR);
+        tempCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        
+        // Configure temp canvas
+        tempCtx.font = ctx.font;
+        tempCtx.textBaseline = 'middle';
+        tempCtx.textAlign = 'left';
+        tempCtx.imageSmoothingEnabled = true;
+        tempCtx.imageSmoothingQuality = 'high';
+        
+        // Apply glow effect if enabled
+        if (glowState) {
+          const glowSize = parseInt(glowIntensity.value || 3, 10);
+          tempCtx.shadowColor = glowColor.value;
+          tempCtx.shadowBlur = glowSize * 2;
+          tempCtx.shadowOffsetX = 0;
+          tempCtx.shadowOffsetY = 0;
+        }
+        
+        // Draw outline if enabled
+        if (outlineState) {
+          const outlineSize = parseInt(outlineWidth.value || 3, 10);
+          tempCtx.strokeStyle = outlineColor.value;
+          tempCtx.lineWidth = outlineSize * 2;
+          tempCtx.lineJoin = 'round';
+          tempCtx.miterLimit = 2;
+          tempCtx.strokeText(line, extraPadding, tempHeight / 2);
+        }
+        
+        // Draw main text
+        tempCtx.fillStyle = colorInput.value;
+        tempCtx.fillText(line, extraPadding, tempHeight / 2);
+        
+        // Calculate starting position
+        const startX = centerX - textWidth / 2;
+        
+        // Apply flag wave by drawing segments
+        for (let i = 0; i < segments; i++) {
+          const x = i * segmentWidth;
+          const wavePhase = (x / textWidth) * Math.PI * frequency + time * speed + lineIndex * 0.5;
+          const yOffset = Math.sin(wavePhase) * amplitude;
+          
+          // Add slight rotation for more flag-like effect
+          const rotation = Math.sin(wavePhase) * 0.05;
+          
+          // Check bounds to prevent drawing outside canvas
+          const drawX = startX + x + segmentWidth/2;
+          const drawY = centerY + yOffset;
+          
+          if (drawX > -segmentWidth && drawX < w + segmentWidth && 
+              drawY > -fs && drawY < h + fs) {
+            
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            ctx.rotate(rotation);
+            
+            // Calculate source coordinates with proper bounds checking
+            const sourceX = Math.max(0, Math.min(x * DPR, tempCanvas.width - segmentWidth * DPR));
+            const sourceWidth = Math.min(segmentWidth * DPR, tempCanvas.width - sourceX);
+            
+            if (sourceWidth > 0) {
+              ctx.drawImage(
+                tempCanvas,
+                sourceX, 0, sourceWidth, tempCanvas.height,
+                -segmentWidth/2, -tempHeight/(2*DPR), segmentWidth, tempHeight/DPR
+              );
+            }
+            
+            ctx.restore();
+          }
+        }
+      });
+    }
+
+    function animate() {
+      const text = textInput.value || '';
+      if (text.trim()) {
+        createFlagWave(text, animationTime);
+      } else {
+        // Clear canvas if no text
+        const w = canvas.width / DPR;
+        const h = canvas.height / DPR;
+        ctx.clearRect(0, 0, w, h);
+      }
+      animationTime += 0.016;
+      requestAnimationFrame(animate);
+    }
+
+    async function exportFrames() {
+      if (!window.JSZip) {
+        statusEl.textContent = 'JSZip library not loaded. Please refresh and try again.';
+        return;
+      }
+
+      const text = textInput.value?.trim();
+      if (!text) {
+        statusEl.textContent = 'Please enter some text first!';
+        return;
+      }
+
+      statusEl.textContent = 'Generating frames...';
+      downloadFrames.disabled = true;
+      progressContainer.style.display = 'block';
+
+      try {
+        const zip = new JSZip();
+        const fps = 20;
+        const duration = 2; // 2 seconds
+        const totalFrames = fps * duration;
+        
+        // Create all frames and add to ZIP
+        for (let i = 0; i < totalFrames; i++) {
+          const frameTime = (i / fps) * Math.PI * 2; // Full cycle in 2 seconds
+          createFlagWave(text, frameTime);
+          
+          // Convert canvas to data URL and then to blob
+          const dataUrl = canvas.toDataURL('image/png');
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+          
+          const frameNumber = String(i).padStart(3, '0');
+          
+          // Add frame to ZIP
+          zip.file(`frame_${frameNumber}.png`, blob);
+          
+          const progress = (i + 1) / totalFrames;
+          progressFill.style.width = (progress * 70) + '%'; // Leave 30% for ZIP generation
+          statusEl.textContent = `Creating frame ${i + 1}/${totalFrames}...`;
+          
+          // Small delay to keep UI responsive
+          await new Promise(resolve => setTimeout(resolve, 30));
+        }
+        
+        // Add instruction file to ZIP
+        const instructions = `Wave Text Generator | TripleBox
+====================================
+
+You now have ${totalFrames} PNG frames for your wave text animation!
+
+QUICK GIF CREATION:
+1. Go to ezgif.com/maker
+2. Upload all PNG frames from this ZIP
+3. Set delay to 50ms (20 FPS)
+4. Enable transparent background
+5. Create GIF!
+
+VIDEO EDITOR SETTINGS:
+- Frame rate: 20 FPS
+- Duration per frame: 0.05 seconds (50ms)
+- Format: PNG with transparency
+- Total duration: 2 seconds (perfect loop)
+
+The frames are named frame_000.png to frame_039.png for easy import.
+
+Thanks for using TripleBox`;
+
+        zip.file('README.txt', instructions);
+        
+        statusEl.textContent = 'Generating ZIP file...';
+        progressFill.style.width = '85%';
+        
+        // Generate ZIP file
+        const zipBlob = await zip.generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 6 }
+        });
+        
+        progressFill.style.width = '100%';
+        statusEl.textContent = 'Downloading ZIP file...';
+        
+        // Download ZIP file
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'wavetext-animation-frames.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        statusEl.textContent = `✅ ZIP downloaded with ${totalFrames} frames! Check README.txt for instructions.`;
+        progressContainer.style.display = 'none';
+        downloadFrames.disabled = false;
+        
+        // Auto-hide success message
+        setTimeout(() => {
+          statusEl.textContent = '';
+        }, 5000);
+        
+      } catch (error) {
+        console.error('ZIP export error:', error);
+        statusEl.textContent = '❌ Export failed. Try screen recording.';
+        progressContainer.style.display = 'none';
+        downloadFrames.disabled = false;
+      }
+    }
+
+    // Event listeners
+    cw.addEventListener('input', resizeCanvas);
+    ch.addEventListener('input', resizeCanvas);
+    downloadFrames.addEventListener('click', exportFrames);
+    outlineEnabled.addEventListener('click', toggleOutline);
+    glowEnabled.addEventListener('click', toggleGlow);
+
+    // Initialize
+    resizeCanvas();
+    updateCheckboxButtons();
+    animate();
+  </script>
+</body>
+</html>
