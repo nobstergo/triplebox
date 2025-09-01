@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wave Text Generator | TripleBox</title>
+  <title>Wave Text GIF Generator | TripleBox</title>
   <style>
     :root { --bg:#0b0c10; --fg:#e9f0f3; --muted:#7a8691; }
     * { box-sizing: border-box; }
@@ -69,12 +69,19 @@
       border-top: 1px solid #1b2128; 
       margin-top: 20px; 
     }
+    .gif-settings { 
+      background: #0d1117; 
+      border: 1px solid #1b2128; 
+      border-radius: 8px; 
+      padding: 12px; 
+      margin-bottom: 12px; 
+    }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>Wave Text Generator</h1>
-    <p class="subtitle">Create stunning animated wave text with transparent backgrounds</p>
+    <h1>Wave Text GIF Generator</h1>
+    <p class="subtitle">Create animated wave text GIFs with transparent backgrounds - no external tools needed!</p>
 
     <div class="panel">
       <div class="section">
@@ -82,8 +89,8 @@
         <div class="row">
           <div class="control-group">
             <label>Text Content</label>
-            <input id="textInput" type="text" value="Sample Text  " />
-              <label>Add spaces for offset.</label>
+            <input id="textInput" type="text" value="Sample Text" />
+            <span class="hint">Add spaces for offset</span>
           </div>
           <div class="control-group">
             <label>Font Size</label>
@@ -171,10 +178,27 @@
           </div>
         </div>
       </div>
-      
+
       <div class="section">
+        <div class="section-title">Export Options</div>
+        <div class="gif-settings">
+          <div class="row">
+            <div class="control-group">
+              <label>Animation Duration</label>
+              <input id="gifDuration" type="number" value="2" min="1" max="10" step="0.5" />
+            </div>
+            <div class="control-group">
+              <label>Export Format</label>
+              <select id="exportFormat">
+                <option value="webm">WebM Video</option>
+                <option value="html">HTML Animation</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
         <div class="row">
-          <button class="btn" id="downloadFrames">Download frames ZIP</button>
+          <button class="btn" id="downloadAnimation">Generate & Download</button>
           <span class="hint" id="status"></span>
         </div>
         
@@ -191,7 +215,6 @@
     <a href="https://triplebox.netlify.com" class="back-btn">Back</a>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -210,7 +233,7 @@
     const cw = document.getElementById('cw');
     const ch = document.getElementById('ch');
     const statusEl = document.getElementById('status');
-    const downloadFrames = document.getElementById('downloadFrames');
+    const downloadAnimation = document.getElementById('downloadAnimation');
     const outlineEnabled = document.getElementById('outlineEnabled');
     const outlineColor = document.getElementById('outlineColor');
     const outlineWidth = document.getElementById('outlineWidth');
@@ -219,6 +242,8 @@
     const glowIntensity = document.getElementById('glowIntensity');
     const progressContainer = document.getElementById('progressContainer');
     const progressFill = document.getElementById('progressFill');
+    const gifDuration = document.getElementById('gifDuration');
+    const exportFormat = document.getElementById('exportFormat');
 
     let animationTime = 0;
 
@@ -431,120 +456,217 @@
       requestAnimationFrame(animate);
     }
 
-    async function exportFrames() {
-      if (!window.JSZip) {
-        statusEl.textContent = 'JSZip library not loaded. Please refresh and try again.';
-        return;
-      }
-
+    async function exportAnimation() {
       const text = textInput.value?.trim();
       if (!text) {
         statusEl.textContent = 'Please enter some text first!';
         return;
       }
 
-      statusEl.textContent = 'Generating frames...';
-      downloadFrames.disabled = true;
+      statusEl.textContent = 'Preparing export...';
+      downloadAnimation.disabled = true;
       progressContainer.style.display = 'block';
+      progressFill.style.width = '0%';
 
+      const format = exportFormat.value;
+      const duration = parseFloat(gifDuration.value || 2);
+
+      if (format === 'webm') {
+        await exportWebM(text, duration);
+      } else {
+        await exportHTML(text, duration);
+      }
+    }
+
+    async function exportWebM(text, duration) {
       try {
-        const zip = new JSZip();
-        const fps = 20;
-        const duration = 2; // 2 seconds
-        const totalFrames = fps * duration;
+        // Check if MediaRecorder is available
+        if (!window.MediaRecorder) {
+          statusEl.textContent = 'WebM not supported. Switching to HTML export...';
+          await exportHTML(text, duration);
+          return;
+        }
+
+        const stream = canvas.captureStream(30); // 30 FPS
+        const recorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm;codecs=vp9'
+        });
+
+        const chunks = [];
+        recorder.ondataavailable = (e) => chunks.push(e.data);
         
-        // Create all frames and add to ZIP
-        for (let i = 0; i < totalFrames; i++) {
-          const frameTime = (i / fps) * Math.PI * 2; // Full cycle in 2 seconds
-          createFlagWave(text, frameTime);
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `wave-text-${Date.now()}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
           
-          // Convert canvas to data URL and then to blob
-          const dataUrl = canvas.toDataURL('image/png');
-          const response = await fetch(dataUrl);
-          const blob = await response.blob();
-          
-          const frameNumber = String(i).padStart(3, '0');
-          
-          // Add frame to ZIP
-          zip.file(`frame_${frameNumber}.png`, blob);
-          
-          const progress = (i + 1) / totalFrames;
-          progressFill.style.width = (progress * 70) + '%'; // Leave 30% for ZIP generation
-          statusEl.textContent = `Creating frame ${i + 1}/${totalFrames}...`;
-          
-          // Small delay to keep UI responsive
-          await new Promise(resolve => setTimeout(resolve, 30));
+          statusEl.textContent = '✅ WebM video downloaded! Convert to GIF with online tools.';
+          progressContainer.style.display = 'none';
+          downloadAnimation.disabled = false;
+        };
+
+        statusEl.textContent = 'Recording animation...';
+        progressFill.style.width = '50%';
+        
+        recorder.start();
+        
+        // Record for the specified duration
+        setTimeout(() => {
+          recorder.stop();
+          progressFill.style.width = '100%';
+        }, duration * 1000);
+
+      } catch (error) {
+        console.error('WebM export error:', error);
+        statusEl.textContent = 'WebM failed. Switching to HTML export...';
+        await exportHTML(text, duration);
+      }
+    }
+
+    async function exportHTML(text, duration) {
+      try {
+        statusEl.textContent = 'Creating HTML animation...';
+        progressFill.style.width = '30%';
+        
+        const fs = parseInt(fontSize.value || 72, 10);
+        const font = fontSelect.value;
+        const color = colorInput.value;
+        const amplitude = parseFloat(ampInput.value || 25);
+        const frequency = parseFloat(freqInput.value || 0.8);
+        const speed = parseFloat(speedInput.value || 1.5);
+        const canvasWidth = parseInt(cw.value || 720, 10);
+        const canvasHeight = parseInt(ch.value || 240, 10);
+
+        // Create CSS keyframes for wave effect
+        let keyframes = '';
+        const steps = 20;
+        for (let i = 0; i <= steps; i++) {
+          const percent = (i / steps) * 100;
+          const time = (i / steps) * Math.PI * 2;
+          const yOffset = Math.sin(time * frequency) * amplitude;
+          const rotation = Math.sin(time * frequency) * 2;
+          keyframes += `${percent}% { transform: translateY(${yOffset}px) rotate(${rotation}deg); }\n`;
+        }
+
+        const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Text Animation</title>
+    <style>
+        body {
+            margin: 0;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
         }
         
-        // Add instruction file to ZIP
-        const instructions = `Wave Text Generator | TripleBox
-====================================
-
-You now have ${totalFrames} PNG frames for your wave text animation!
-
-QUICK GIF CREATION:
-1. Go to ezgif.com/maker
-2. Upload all PNG frames from this ZIP
-3. Set delay to 50ms (20 FPS)
-4. Enable transparent background
-5. Create GIF!
-
-VIDEO EDITOR SETTINGS:
-- Frame rate: 20 FPS
-- Duration per frame: 0.05 seconds (50ms)
-- Format: PNG with transparency
-- Total duration: 2 seconds (perfect loop)
-
-The frames are named frame_000.png to frame_039.png for easy import.
-
-Thanks for using TripleBox`;
-
-        zip.file('README.txt', instructions);
+        .wave-container {
+            width: ${canvasWidth}px;
+            height: ${canvasHeight}px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
         
-        statusEl.textContent = 'Generating ZIP file...';
-        progressFill.style.width = '85%';
+        .wave-text {
+            font-size: ${fs}px;
+            font-family: ${font};
+            color: ${color};
+            font-weight: 700;
+            white-space: nowrap;
+            animation: waveAnimation ${duration}s infinite linear;
+            transform-origin: center;
+            ${outlineState ? `text-shadow: 
+                -${outlineWidth.value}px -${outlineWidth.value}px 0 ${outlineColor.value},
+                ${outlineWidth.value}px -${outlineWidth.value}px 0 ${outlineColor.value},
+                -${outlineWidth.value}px ${outlineWidth.value}px 0 ${outlineColor.value},
+                ${outlineWidth.value}px ${outlineWidth.value}px 0 ${outlineColor.value};` : ''}
+            ${glowState ? `filter: drop-shadow(0 0 ${glowIntensity.value * 2}px ${glowColor.value});` : ''}
+        }
         
-        // Generate ZIP file
-        const zipBlob = await zip.generateAsync({
-          type: 'blob',
-          compression: 'DEFLATE',
-          compressionOptions: { level: 6 }
-        });
+        @keyframes waveAnimation {
+            ${keyframes}
+        }
         
-        progressFill.style.width = '100%';
-        statusEl.textContent = 'Downloading ZIP file...';
+        .instructions {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wave-container">
+        <div class="wave-text">${text}</div>
+    </div>
+    
+    <div class="instructions">
+        <strong>Perfect! Your wave animation is ready!</strong><br><br>
+        <strong>To create a GIF:</strong><br>
+        1. Use screen recording software (OBS Studio, etc.)<br>
+        2. Record this animation for ${duration} seconds<br>
+        3. Convert the recording to GIF<br><br>
+        <strong>Or use browser extensions like:</strong><br>
+        • GIF Recorder<br>
+        • Loom<br>
+        • Screencastify
+    </div>
+</body>
+</html>`;
+
+        progressFill.style.width = '80%';
         
-        // Download ZIP file
-        const url = URL.createObjectURL(zipBlob);
+        // Download the HTML file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'wavetext-animation-frames.zip';
+        a.download = `wave-text-animation-${Date.now()}.html`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        statusEl.textContent = `✅ ZIP downloaded with ${totalFrames} frames! Check README.txt for instructions.`;
+        progressFill.style.width = '100%';
+        statusEl.textContent = '✅ HTML animation downloaded! Open it and record as GIF.';
         progressContainer.style.display = 'none';
-        downloadFrames.disabled = false;
+        downloadAnimation.disabled = false;
         
-        // Auto-hide success message
         setTimeout(() => {
-          statusEl.textContent = '';
-        }, 5000);
-        
+          statusEl.textContent = 'Tip: Use OBS Studio or browser screen recording to capture as GIF.';
+        }, 3000);
+
       } catch (error) {
-        console.error('ZIP export error:', error);
-        statusEl.textContent = '❌ Export failed. Try screen recording.';
+        console.error('HTML export error:', error);
+        statusEl.textContent = '❌ Export failed. Please try again.';
         progressContainer.style.display = 'none';
-        downloadFrames.disabled = false;
+        downloadAnimation.disabled = false;
       }
     }
 
     // Event listeners
     cw.addEventListener('input', resizeCanvas);
     ch.addEventListener('input', resizeCanvas);
-    downloadFrames.addEventListener('click', exportFrames);
+    downloadAnimation.addEventListener('click', exportAnimation);
     outlineEnabled.addEventListener('click', toggleOutline);
     glowEnabled.addEventListener('click', toggleGlow);
 
